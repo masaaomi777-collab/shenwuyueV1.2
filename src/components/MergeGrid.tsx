@@ -3,6 +3,8 @@ import { GameEngine } from '../game/GameEngine';
 import { HeroType } from '../game/types';
 
 export function MergeGrid({ engine }: { engine: GameEngine }) {
+  const [draggedIdx, setDraggedIdx] = React.useState<number | null>(null);
+
   const handleDragStart = (e: React.DragEvent, idx: number) => {
     e.dataTransfer.setData('text/plain', idx.toString());
   };
@@ -17,6 +19,30 @@ export function MergeGrid({ engine }: { engine: GameEngine }) {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, idx: number) => {
+    if (idx < engine.unlockedSlotsCount && engine.grid[idx]) {
+      setDraggedIdx(idx);
+      // Prevent default to avoid scrolling/zooming during drag
+      if (e.cancelable) e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (draggedIdx === null) return;
+
+    const touch = e.changedTouches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slotElement = target?.closest('[data-slot-idx]');
+    
+    if (slotElement) {
+      const toIdx = parseInt(slotElement.getAttribute('data-slot-idx')!);
+      if (!isNaN(toIdx) && toIdx !== draggedIdx) {
+        engine.mergeSlots(draggedIdx, toIdx);
+      }
+    }
+    setDraggedIdx(null);
   };
 
   const getElementColor = (type: HeroType) => {
@@ -44,20 +70,24 @@ export function MergeGrid({ engine }: { engine: GameEngine }) {
   };
 
   return (
-    <div className="grid grid-cols-8 gap-1">
+    <div className="grid grid-cols-8 gap-1 touch-none">
       {engine.grid.map((slot, idx) => {
         const isLocked = idx >= engine.unlockedSlotsCount;
 
         return (
           <div
             key={idx}
+            data-slot-idx={idx}
             draggable={!isLocked && !!slot}
             onDragStart={(e) => handleDragStart(e, idx)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, idx)}
+            onTouchStart={(e) => handleTouchStart(e, idx)}
+            onTouchEnd={handleTouchEnd}
             className={`aspect-square rounded-md flex items-center justify-center relative border-2 transition-all
               ${isLocked ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-700 border-gray-600 hover:border-gray-500'}
               ${!isLocked && slot ? 'cursor-grab active:cursor-grabbing' : ''}
+              ${draggedIdx === idx ? 'opacity-50 scale-95' : ''}
             `}
           >
             {isLocked && <div className="text-gray-600 text-xs">🔒</div>}
