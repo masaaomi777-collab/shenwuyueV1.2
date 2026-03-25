@@ -15,7 +15,7 @@ export class GameEngine {
   levelConfig: LevelConfig;
   playerState: PlayerState;
 
-  fortress = { x: 0, y: 0, hp: 1000, maxHp: 1000, baseSpeed: 50, speed: 50, targetWpIdx: 1, radius: 40 };
+  fortress = { x: 0, y: 0, hp: 1000, maxHp: 1000, baseSpeed: 50, speed: 50, targetWpIdx: 1, radius: 40, rotation: 0 };
   monsters: Monster[] = [];
   heroes: SummonedHero[] = [];
   projectiles: Projectile[] = [];
@@ -27,7 +27,7 @@ export class GameEngine {
   isPrologue = false;
   prologueTargetMaterials = 3;
 
-  grid: (GridSlot | null)[] = Array(16).fill(null);
+  grid: (GridSlot | null)[] = Array(8).fill(null);
   summonCount = 0;
   coins = 250;
   energy = 0;
@@ -134,7 +134,7 @@ export class GameEngine {
   }
 
   get unlockedSlotsCount() {
-    return 8 + UNLOCK_THRESHOLDS.filter(t => this.summonCount >= t).length;
+    return 8;
   }
 
   get summonCost() {
@@ -211,6 +211,7 @@ export class GameEngine {
       this.distanceTraveled += dist;
       this.fortress.x = target.x;
       this.fortress.y = target.y;
+      this.fortress.rotation = Math.atan2(dy, dx);
       if (target.type.startsWith('elite') || target.type === 'boss') {
         this.nodeState = 'stopped_at_node';
         this.nodeTimer = 0;
@@ -221,6 +222,7 @@ export class GameEngine {
     } else {
       const moveDist = this.fortress.speed * dt;
       this.distanceTraveled += moveDist;
+      this.fortress.rotation = Math.atan2(dy, dx);
       this.fortress.x += (dx / dist) * moveDist;
       this.fortress.y += (dy / dist) * moveDist;
     }

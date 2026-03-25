@@ -6,6 +6,8 @@ import { Heart, Coins, Pause, Play, Home, TreeDeciduous, Mountain, Box } from 'l
 import { HeroType, LevelConfig, PlayerState } from '../game/types';
 import { Joystick } from './Joystick';
 
+import { assets } from '../game/AssetManager';
+
 interface GameProps {
   levelConfig: LevelConfig;
   playerState: PlayerState;
@@ -21,41 +23,32 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
   const [, setTick] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isPrologue, setIsPrologue] = useState(false);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   // Initialize engine once
   if (!engineRef.current) {
     engineRef.current = new GameEngine(levelConfig, playerState);
   }
 
-  const decorations = React.useMemo(() => {
-    const items: { x: number, y: number, type: 'tree' | 'rock' | 'bush', size: number }[] = [];
-    const waypoints = levelConfig.waypoints;
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const p1 = waypoints[i];
-      const p2 = waypoints[i + 1];
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const dist = Math.hypot(dx, dy);
-      const count = Math.floor(dist / 80);
-      
-      for (let j = 0; j < count; j++) {
-        const t = j / count;
-        const baseX = p1.x + dx * t;
-        const baseY = p1.y + dy * t;
-        const offsetDist = 100 + Math.random() * 400;
-        const side = Math.random() > 0.5 ? 1 : -1;
-        const nx = -dy / dist;
-        const ny = dx / dist;
-        const x = baseX + nx * offsetDist * side + (Math.random() - 0.5) * 50;
-        const y = baseY + ny * offsetDist * side + (Math.random() - 0.5) * 50;
-        const rand = Math.random();
-        const type = rand < 0.5 ? 'tree' : rand < 0.8 ? 'rock' : 'bush';
-        const size = 15 + Math.random() * 20;
-        items.push({ x, y, type, size });
-      }
-    }
-    return items;
-  }, [levelConfig]);
+  const drawRef = useRef<(time: number) => void>(() => {});
+
+  useEffect(() => {
+    const version = Date.now();
+    assets.loadImages({
+      'castle': `/res/castle.png?v=${version}`,
+      'road': `/res/road.png?v=${version}`,
+      'background': `/res/background.png?v=${version}`
+    }).then(() => {
+      console.log('Assets loaded successfully');
+      setAssetsLoaded(true);
+    }).catch(err => {
+      console.error('Failed to load assets:', err);
+      // 即使失败也尝试进入游戏，避免卡死
+      setAssetsLoaded(true);
+    });
+  }, []);
+
+  const decorations = React.useMemo(() => [], []);
 
   useEffect(() => {
     const engine = engineRef.current!;
@@ -82,7 +75,7 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
         engine.movePlayer(joystickInput.current.dx, joystickInput.current.dy, dt);
       }
       engine.update(time);
-      draw(time);
+      if (drawRef.current) drawRef.current(time);
       reqId = requestAnimationFrame(loop);
     };
     reqId = requestAnimationFrame(loop);
@@ -117,9 +110,7 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
     const height = canvas.height;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(0, 0, width, height);
-
+    
     ctx.save();
     let camX, camY;
     if (engine.isPrologue) {
@@ -131,50 +122,55 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
     }
     ctx.translate(camX, camY);
 
-    // Draw road (only if not prologue)
-    if (!engine.isPrologue) {
-      ctx.strokeStyle = '#374151';
-      ctx.lineWidth = 120;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      levelConfig.waypoints.forEach((wp, i) => {
-        if (i === 0) ctx.moveTo(wp.x, wp.y);
-        else ctx.lineTo(wp.x, wp.y);
-      });
-      ctx.stroke();
+    // 1. Draw tiled background (Relative to world, after camera translate)
+    const bgImg = assets.get('background');
+    if (bgImg) {
+      const pattern = ctx.createPattern(bgImg, 'repeat');
+      if (pattern) {
+        // 使用 DOMMatrix 缩小背景缩放比例
+        const matrix = new DOMMatrix();
+        const bgScale = 0.5; // 缩小比例，使背景元素更小
+        matrix.a = bgScale;
+        matrix.d = bgScale;
+        pattern.setTransform(matrix);
+        
+        ctx.fillStyle = pattern;
+        ctx.fillRect(-camX, -camY, width, height);
+      }
+    } else {
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(-camX, -camY, width, height);
+    }
 
-      // Draw waypoints
+    // 2. Draw road path (Using soil yellow color)
+    ctx.strokeStyle = '#d4a373'; // 土黄色
+    ctx.lineWidth = 100; // 道路宽度
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    levelConfig.waypoints.forEach((wp, i) => {
+      if (i === 0) ctx.moveTo(wp.x, wp.y);
+      else ctx.lineTo(wp.x, wp.y);
+    });
+    ctx.stroke();
+
+    // 3. Draw waypoints (only if not prologue)
+    if (!engine.isPrologue) {
+      // Draw road path dots (optional, can be removed if roadImg is enough)
       levelConfig.waypoints.forEach(wp => {
-        ctx.fillStyle = wp.type === 'normal' ? '#4b5563' : '#991b1b';
-        ctx.beginPath();
-        ctx.arc(wp.x, wp.y, 30, 0, Math.PI * 2);
-        ctx.fill();
         if (wp.type !== 'normal') {
-           ctx.strokeStyle = '#f87171';
-           ctx.lineWidth = 4;
-           ctx.stroke();
+          ctx.fillStyle = '#991b1b';
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, 30, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#f87171';
+          ctx.lineWidth = 4;
+          ctx.stroke();
         }
       });
     }
 
-    // Draw decorations
-    decorations.forEach(dec => {
-      ctx.beginPath();
-      if (dec.type === 'tree') {
-        ctx.fillStyle = '#065f46';
-        ctx.arc(dec.x, dec.y, dec.size, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (dec.type === 'rock') {
-        ctx.fillStyle = '#4b5563';
-        ctx.arc(dec.x, dec.y, dec.size, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (dec.type === 'bush') {
-        ctx.fillStyle = '#166534';
-        ctx.arc(dec.x, dec.y, dec.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
+    // Draw decorations (Removed)
 
     // Draw Resource Nodes (Prologue)
     engine.resourceNodes.forEach(rn => {
@@ -201,8 +197,17 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
     });
 
     // Draw fortress
-    ctx.fillStyle = engine.isPrologue ? '#4b5563' : '#3b82f6'; // Gray if damaged
-    ctx.fillRect(engine.fortress.x - 40, engine.fortress.y - 50, 80, 100);
+    const castleImg = assets.get('castle');
+    ctx.save();
+    ctx.translate(engine.fortress.x, engine.fortress.y);
+    // Rotate to face forward. Math.PI/2 adjustment assumes image front is at the top.
+    ctx.rotate(engine.fortress.rotation + Math.PI / 2);
+    if (castleImg) {
+      ctx.drawImage(castleImg, -60, -75, 120, 150);
+    } else {
+      ctx.fillStyle = engine.isPrologue ? '#4b5563' : '#3b82f6'; // Gray if damaged
+      ctx.fillRect(-40, -50, 80, 100);
+    }
     
     if (!engine.isPrologue) {
       const towerPositions = [
@@ -211,9 +216,10 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
       ];
       for (let i = 0; i < 4; i++) {
         ctx.fillStyle = engine.activeElements[i] ? getElementColor(engine.activeElements[i]) : '#60a5fa';
-        ctx.fillRect(engine.fortress.x + towerPositions[i].x, engine.fortress.y + towerPositions[i].y, 10, 20);
+        ctx.fillRect(towerPositions[i].x, towerPositions[i].y, 10, 20);
       }
     }
+    ctx.restore();
 
     // Draw fortress HP & Shield
     ctx.fillStyle = '#ef4444';
@@ -276,12 +282,24 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
     ctx.restore();
   };
 
+  useEffect(() => {
+    drawRef.current = draw;
+  }, [draw]);
+
   const engine = engineRef.current!;
 
   const togglePause = () => {
     engine.isPaused = !engine.isPaused;
     setIsPaused(engine.isPaused);
   };
+
+  if (!assetsLoaded) {
+    return (
+      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+        <div className="text-blue-400 animate-pulse font-bold tracking-widest text-xl">资源加载中...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full flex flex-col bg-gray-900 text-white select-none">

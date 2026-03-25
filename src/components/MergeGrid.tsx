@@ -22,7 +22,7 @@ export function MergeGrid({ engine }: { engine: GameEngine }) {
   };
 
   const handleTouchStart = (e: React.TouchEvent, idx: number) => {
-    if (idx < engine.unlockedSlotsCount && engine.grid[idx]) {
+    if (engine.grid[idx]) {
       setDraggedIdx(idx);
       // Prevent default to avoid scrolling/zooming during drag
       if (e.cancelable) e.preventDefault();
@@ -72,26 +72,23 @@ export function MergeGrid({ engine }: { engine: GameEngine }) {
   return (
     <div className="grid grid-cols-8 gap-1 touch-none">
       {engine.grid.map((slot, idx) => {
-        const isLocked = idx >= engine.unlockedSlotsCount;
-
         return (
           <div
             key={idx}
             data-slot-idx={idx}
-            draggable={!isLocked && !!slot}
+            draggable={!!slot}
             onDragStart={(e) => handleDragStart(e, idx)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, idx)}
             onTouchStart={(e) => handleTouchStart(e, idx)}
             onTouchEnd={handleTouchEnd}
             className={`aspect-square rounded-md flex items-center justify-center relative border-2 transition-all
-              ${isLocked ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-700 border-gray-600 hover:border-gray-500'}
-              ${!isLocked && slot ? 'cursor-grab active:cursor-grabbing' : ''}
+              bg-gray-700 border-gray-600 hover:border-gray-500
+              ${slot ? 'cursor-grab active:cursor-grabbing' : ''}
               ${draggedIdx === idx ? 'opacity-50 scale-95' : ''}
             `}
           >
-            {isLocked && <div className="text-gray-600 text-xs">🔒</div>}
-            {!isLocked && slot && (
+            {slot && (
               <div className={`w-full h-full rounded-sm flex flex-col items-center justify-center ${getElementColor(slot.heroType)}`}>
                 <span className="text-xs font-bold text-white/90 drop-shadow-md">{getElementLabel(slot.heroType)}</span>
                 <div className="flex gap-[1px] mt-1">
