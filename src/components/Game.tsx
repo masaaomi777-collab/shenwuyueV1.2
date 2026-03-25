@@ -37,7 +37,14 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
     assets.loadImages({
       'castle': `/res/castle.png?v=${version}`,
       'road': `/res/road.png?v=${version}`,
-      'background': `/res/background.png?v=${version}`
+      'background': `/res/background.png?v=${version}`,
+      'hero_flame': `/res/role/fire.png?v=${version}`,
+      'hero_ice': `/res/role/water.png?v=${version}`,
+      'hero_wind': `/res/role/wind.png?v=${version}`,
+      'monster_1': `/res/role/monster_1.png?v=${version}`,
+      'monster_2': `/res/role/monster_2.png?v=${version}`,
+      'boss_0': `/res/role/boss_0.png?v=${version}`,
+      'boss_1': `/res/role/boss_1.png?v=${version}`
     }).then(() => {
       console.log('Assets loaded successfully');
       setAssetsLoaded(true);
@@ -229,15 +236,21 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
 
     // Draw Player (Prologue)
     if (engine.player) {
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();
-      ctx.arc(engine.player.x, engine.player.y, engine.player.radius, 0, Math.PI * 2);
-      ctx.fill();
-      // Direction indicator
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(engine.player.x, engine.player.y - 10, 4, 0, Math.PI * 2);
-      ctx.fill();
+      const playerImg = assets.get('hero_flame');
+      const drawRadius = engine.player.radius * 2;
+      if (playerImg) {
+        ctx.drawImage(playerImg, engine.player.x - drawRadius, engine.player.y - drawRadius, drawRadius * 2, drawRadius * 2);
+      } else {
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(engine.player.x, engine.player.y, drawRadius, 0, Math.PI * 2);
+        ctx.fill();
+        // Direction indicator
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(engine.player.x, engine.player.y - drawRadius * 0.5, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     // Draw flying materials
@@ -252,23 +265,45 @@ export function Game({ levelConfig, playerState, onBack, onGameOver, onPrologueE
 
     // Draw monsters
     engine.monsters.forEach(m => {
-      ctx.fillStyle = m.maxHp > 100 ? '#991b1b' : '#ef4444';
-      ctx.beginPath();
-      ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
-      ctx.fill();
+      const isBoss = m.radius >= 25;
+      let img = null;
+      const drawRadius = m.radius * 2;
+      
+      if (isBoss) {
+        img = m.isAttacking ? assets.get('boss_1') : assets.get('boss_0');
+      } else {
+        // Simple logic to pick monster image based on ID
+        const monsterIdx = (parseInt(m.id.slice(-1)) || 0) % 2 + 1;
+        img = assets.get(`monster_${monsterIdx}`);
+      }
+
+      if (img) {
+        ctx.drawImage(img, m.x - drawRadius, m.y - drawRadius, drawRadius * 2, drawRadius * 2);
+      } else {
+        ctx.fillStyle = isBoss ? '#991b1b' : '#ef4444';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, drawRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
       
       ctx.fillStyle = '#000';
-      ctx.fillRect(m.x - 10, m.y - m.radius - 8, 20, 4);
+      ctx.fillRect(m.x - 10, m.y - drawRadius - 8, 20, 4);
       ctx.fillStyle = '#ef4444';
-      ctx.fillRect(m.x - 10, m.y - m.radius - 8, 20 * (m.hp / m.maxHp), 4);
+      ctx.fillRect(m.x - 10, m.y - drawRadius - 8, 20 * (m.hp / m.maxHp), 4);
     });
 
     // Draw heroes
     engine.heroes.forEach(h => {
-      ctx.fillStyle = getElementColor(h.heroType);
-      ctx.beginPath();
-      ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
-      ctx.fill();
+      const img = assets.get(`hero_${h.heroType}`);
+      const drawRadius = h.radius * 2;
+      if (img) {
+        ctx.drawImage(img, h.x - drawRadius, h.y - drawRadius, drawRadius * 2, drawRadius * 2);
+      } else {
+        ctx.fillStyle = getElementColor(h.heroType);
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, drawRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
 
     // Draw projectiles
