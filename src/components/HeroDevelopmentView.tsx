@@ -169,7 +169,7 @@ export function HeroDevelopmentView({ playerState, setPlayerState }: HeroDevelop
               className={`flex-1 py-3 rounded-xl font-bold flex flex-col items-center gap-0.5 border-2 transition-all ${playerState.upgradeTickets >= hero.level * 10 ? 'bg-blue-600 border-blue-400 text-white active:scale-95' : 'bg-gray-700 border-gray-600 text-gray-500 opacity-50'}`}
             >
               <span className="text-sm">升级</span>
-              <span className="text-[10px] opacity-80 flex items-center gap-1">消耗 {hero.level * 10} 强化券</span>
+              <span className="text-[10px] opacity-80 flex items-center gap-1">消耗 {hero.level * 10} 密卷</span>
             </button>
             <button
               onClick={handleStarUp}
@@ -209,7 +209,8 @@ export function HeroDevelopmentView({ playerState, setPlayerState }: HeroDevelop
       {/* Currency Display */}
       <div className="flex justify-between text-xs text-gray-500 px-2">
         <div className="flex items-center gap-1">
-          <span className="text-yellow-500 font-bold">{playerState.upgradeTickets}</span> 强化券
+          <img src="/res/UI/miquan.png" alt="密卷" className="w-4 h-4 object-contain" referrerPolicy="no-referrer" />
+          <span className="text-yellow-500 font-bold">{playerState.upgradeTickets}</span> 密卷
         </div>
         <div className="flex items-center gap-1">
           <span className="text-purple-500 font-bold">{hero.shards}</span> {getHeroName(selectedHero)} 碎片

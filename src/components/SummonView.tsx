@@ -70,8 +70,9 @@ export function SummonView({ playerState, setPlayerState }: SummonViewProps) {
           <Sparkles size={24} /> 英雄召唤
         </h2>
         <div className="flex items-center gap-2 bg-gray-800 px-3 py-1 rounded-full border border-gray-700">
+          <img src="/res/UI/shengguanmao.png" alt="升官帽" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
           <span className="text-sm font-bold text-purple-400">{playerState.summonTickets}</span>
-          <span className="text-xs text-gray-400 uppercase">召唤券</span>
+          <span className="text-xs text-gray-400 uppercase">升官帽</span>
         </div>
       </div>
 
@@ -80,7 +81,7 @@ export function SummonView({ playerState, setPlayerState }: SummonViewProps) {
         <div className={`relative w-64 h-64 rounded-full border-8 border-dashed border-yellow-500/30 flex items-center justify-center ${summoning ? 'animate-spin' : ''}`}>
           <div className="absolute inset-4 rounded-full border-4 border-yellow-500/50 animate-pulse" />
           <div className="w-32 h-32 bg-yellow-500/20 rounded-full flex items-center justify-center">
-             <Sparkles size={64} className="text-yellow-500" />
+             <img src="/res/UI/shengguanmao.png" alt="Summon" className="w-20 h-20 object-contain" referrerPolicy="no-referrer" />
           </div>
         </div>
 
@@ -102,7 +103,7 @@ export function SummonView({ playerState, setPlayerState }: SummonViewProps) {
         >
           <span>十连召唤</span>
           <span className="text-sm flex items-center gap-1 opacity-80">
-            消耗 10 召唤券
+            消耗 10 升官帽
           </span>
         </button>
       </div>

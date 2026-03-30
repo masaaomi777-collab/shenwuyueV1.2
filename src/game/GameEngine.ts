@@ -1,5 +1,5 @@
 import { LEVELS, UNLOCK_THRESHOLDS, SKILL_TREES } from './constants';
-import { Monster, SummonedHero, Projectile, GridSlot, HeroType, AreaEffect, SkillNode, Buff, LevelConfig, PlayerState, ResourceNode, PlayerCharacter, MaterialCount } from './types';
+import { Monster, SummonedHero, Projectile, GridSlot, HeroType, AreaEffect, SkillNode, Buff, LevelConfig, PlayerState, ResourceNode, PlayerCharacter, MaterialCount, Decoration } from './types';
 
 export interface FlyingMaterial {
   id: string;
@@ -14,6 +14,7 @@ export interface FlyingMaterial {
 export class GameEngine {
   levelConfig: LevelConfig;
   playerState: PlayerState;
+  decorations: Decoration[] = [];
 
   fortress = { x: 0, y: 0, hp: 1000, maxHp: 1000, baseSpeed: 50, speed: 50, targetWpIdx: 1, radius: 40, rotation: 0 };
   monsters: Monster[] = [];
@@ -27,7 +28,7 @@ export class GameEngine {
   isPrologue = false;
   prologueTargetMaterials = 3;
 
-  grid: (GridSlot | null)[] = Array(8).fill(null);
+  grid: (GridSlot | null)[] = Array(10).fill(null);
   summonCount = 0;
   coins = 250;
   energy = 0;
@@ -48,6 +49,7 @@ export class GameEngine {
   fortressAtkSpeedBuff = 0;
   fortressDamageReduction = 0;
   fortressDamageReductionTimer = 0;
+  fortressAttacked = false;
 
   nodeState: 'moving' | 'stopped_at_node' = 'moving';
   nodeTimer = 0;
@@ -85,6 +87,65 @@ export class GameEngine {
       this.isPrologue = true;
       this.initPrologue();
     }
+
+    // Generate decorations if not provided
+    if (level.decorations) {
+      this.decorations = level.decorations;
+    } else {
+      this.generateDecorations();
+    }
+  }
+
+  generateDecorations() {
+    const decTypes = ['dec_1', 'dec_2', 'dec_3', 'dec_4'];
+    const count = 120 + Math.floor(Math.random() * 60);
+    
+    // Find map bounds
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    this.levelConfig.waypoints.forEach(wp => {
+      minX = Math.min(minX, wp.x);
+      maxX = Math.max(maxX, wp.x);
+      minY = Math.min(minY, wp.y);
+      maxY = Math.max(maxY, wp.y);
+    });
+
+    // Add margin - reduced to keep them closer to the road
+    minX -= 300; maxX += 300;
+    minY -= 300; maxY += 300;
+
+    for (let i = 0; i < count; i++) {
+      const x = minX + Math.random() * (maxX - minX);
+      const y = minY + Math.random() * (maxY - minY);
+      
+      // Check if too close to road
+      let tooClose = false;
+      for (let j = 1; j < this.levelConfig.waypoints.length; j++) {
+        const p1 = this.levelConfig.waypoints[j-1];
+        const p2 = this.levelConfig.waypoints[j];
+        const dist = this.pointToSegmentDist(x, y, p1.x, p1.y, p2.x, p2.y);
+        if (dist < 100) {
+          tooClose = true;
+          break;
+        }
+      }
+
+      if (!tooClose) {
+        this.decorations.push({
+          x, y,
+          type: decTypes[Math.floor(Math.random() * decTypes.length)],
+          scale: 0.2 + Math.random() * 0.2,
+          rotation: 0 // Fixed rotation as requested
+        });
+      }
+    }
+  }
+
+  pointToSegmentDist(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
+    const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
   }
 
   initPrologue() {
@@ -134,7 +195,7 @@ export class GameEngine {
   }
 
   get unlockedSlotsCount() {
-    return 8;
+    return 10;
   }
 
   get summonCost() {
@@ -479,6 +540,7 @@ export class GameEngine {
             }
           }
           this.fortress.hp -= damageTaken;
+          this.fortressAttacked = true;
           m.lastAttackTime = this.lastTime;
           if (this.fortress.hp <= 0) {
             this.fortress.hp = 0;
@@ -1159,6 +1221,9 @@ export class GameEngine {
   }
 
   mergeSlots(fromIdx: number, toIdx: number) {
+    // Prevent interaction with locked slots
+    if (fromIdx >= this.unlockedSlotsCount || toIdx >= this.unlockedSlotsCount) return;
+
     const from = this.grid[fromIdx];
     const to = this.grid[toIdx];
     if (!from) return;
@@ -1207,9 +1272,14 @@ export class GameEngine {
   triggerSkillSelection() {
     this.isSkillSelection = true;
     
+    // Determine which elements to use for skill pool
+    // 优先从已召唤的英雄中选择技能，如果没有英雄则从已携带的英雄中选择
+    const summonedHeroTypes = Array.from(new Set(this.heroes.map(h => h.heroType)));
+    const poolElements = summonedHeroTypes.length > 0 ? summonedHeroTypes : this.activeElements;
+
     // Generate 3 choices
     const availableSkills: SkillNode[] = [];
-    this.activeElements.forEach(el => {
+    poolElements.forEach(el => {
       const tree = SKILL_TREES[el];
       if (tree) {
         tree.forEach(node => {

@@ -1,4 +1,4 @@
-import { Waypoint, SkillNode, LevelConfig } from './types';
+import { Waypoint, SkillNode, LevelConfig, TileMapData } from './types';
 
 export const WAYPOINTS: Waypoint[] = [
   { x: 0, y: 0, type: 'start' },
@@ -22,6 +22,8 @@ export const LEVELS: LevelConfig[] = [
     monsterHpMult: 1,
     monsterSpeedMult: 1,
     spawnIntervalMult: 1,
+    backgroundAsset: 'background',
+    floorAsset: '/res/UI/floor_1.png',
     waypoints: [
       { x: 0, y: 0, type: 'start' },
       { x: 0, y: -1200, type: 'normal' },
@@ -35,12 +37,13 @@ export const LEVELS: LevelConfig[] = [
   },
   {
     id: 2,
-    name: '幽暗森林',
+    name: '深山雪径',
     difficulty: 2,
     rewardTickets: 100,
     monsterHpMult: 1.5,
     monsterSpeedMult: 1.1,
     spawnIntervalMult: 0.9,
+    floorAsset: '/res/UI/floor_2.png',
     waypoints: [
       { x: 0, y: 0, type: 'start' },
       { x: 300, y: -600, type: 'normal' },
@@ -52,12 +55,13 @@ export const LEVELS: LevelConfig[] = [
   },
   {
     id: 3,
-    name: '熔岩炼狱',
+    name: '异域樱国',
     difficulty: 3,
     rewardTickets: 200,
     monsterHpMult: 2.5,
     monsterSpeedMult: 1.2,
     spawnIntervalMult: 0.7,
+    floorAsset: '/res/UI/floor_3.png',
     waypoints: [
       { x: 0, y: 0, type: 'start' },
       { x: 0, y: -800, type: 'normal' },

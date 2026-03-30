@@ -86,6 +86,28 @@ export interface SkillNode {
   reqs: string[];
 }
 
+export interface Tile {
+  id: number;
+  src: string;
+}
+
+export interface TileMapData {
+  width: number;
+  height: number;
+  tileSize: number;
+  layers: number[][][]; // [layer][y][x]
+  worldX: number;
+  worldY: number;
+}
+
+export interface Decoration {
+  x: number;
+  y: number;
+  type: string; // 'dec_1', 'dec_2', etc.
+  scale: number;
+  rotation: number;
+}
+
 export interface LevelConfig {
   id: number;
   name: string;
@@ -95,6 +117,10 @@ export interface LevelConfig {
   monsterHpMult: number;
   monsterSpeedMult: number;
   spawnIntervalMult: number;
+  mapData?: TileMapData;
+  backgroundAsset?: string;
+  floorAsset?: string;
+  decorations?: Decoration[];
 }
 
 export interface PlayerHero {

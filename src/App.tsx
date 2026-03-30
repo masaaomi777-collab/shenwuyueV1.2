@@ -10,6 +10,8 @@ import { SummonView } from './components/SummonView';
 import { HeroDevelopmentView } from './components/HeroDevelopmentView';
 import { PlayerState, LevelConfig, HeroType } from './game/types';
 import { LEVELS } from './game/constants';
+import { assets } from './game/AssetManager';
+import { Ghost, Home, User } from 'lucide-react';
 
 const INITIAL_PLAYER_STATE: PlayerState = {
   upgradeTickets: 100,
@@ -30,11 +32,16 @@ type View = 'main_menu' | 'summon' | 'hero_dev' | 'game';
 
 export default function App() {
   const [view, setView] = useState<View>('main_menu');
+  const [loading, setLoading] = useState(true);
   const [playerState, setPlayerState] = useState<PlayerState>(() => {
     const saved = localStorage.getItem('playerState');
     return saved ? JSON.parse(saved) : INITIAL_PLAYER_STATE;
   });
   const [selectedLevel, setSelectedLevel] = useState<LevelConfig>(LEVELS[0]);
+
+  useEffect(() => {
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('playerState', JSON.stringify(playerState));
@@ -66,8 +73,20 @@ export default function App() {
 
   return (
     <div className="w-full h-screen bg-black flex items-center justify-center overflow-hidden">
-      <div className="relative w-full max-w-md h-full bg-gray-900 shadow-2xl overflow-hidden flex flex-col">
-        {view === 'game' ? (
+      <div className="relative w-full max-w-md h-full bg-black shadow-2xl overflow-hidden flex flex-col">
+        {/* Background for UI Views - Moved here to fill entire screen including bottom nav */}
+        {view !== 'game' && !loading && (
+          <div 
+            className="absolute inset-0 bg-cover bg-bottom pointer-events-none z-0"
+            style={{ backgroundImage: 'url(/res/UI/bg.png)' }}
+          />
+        )}
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-white gap-4">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-mono tracking-widest animate-pulse">LOADING ASSETS...</p>
+          </div>
+        ) : view === 'game' ? (
           <Game 
             levelConfig={selectedLevel} 
             playerState={playerState} 
@@ -100,27 +119,28 @@ export default function App() {
             </div>
 
             {/* Bottom Navigation */}
-            <div className="h-20 bg-gray-800 border-t border-gray-700 flex items-center justify-around px-4">
+            <div className="h-20 flex items-center justify-around px-4 relative z-20">
+              <img src="/res/UI/bgbt.png" alt="" className="absolute inset-0 w-full h-full object-fill -z-10" referrerPolicy="no-referrer" />
               <button 
                 onClick={() => setView('summon')}
-                className={`flex flex-col items-center gap-1 ${view === 'summon' ? 'text-yellow-400' : 'text-gray-400'}`}
+                className={`flex flex-col items-center gap-1 transition-all ${view === 'summon' ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
               >
-                <div className="w-6 h-6 bg-yellow-500 rounded-sm" />
-                <span className="text-xs">召唤</span>
+                <img src="/res/UI/btn_hl.png" alt="唤灵" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                <span className="text-[10px] font-bold tracking-widest text-[#d4af37]">唤灵</span>
               </button>
               <button 
                 onClick={() => setView('main_menu')}
-                className={`flex flex-col items-center gap-1 ${view === 'main_menu' ? 'text-blue-400' : 'text-gray-400'}`}
+                className={`flex flex-col items-center gap-1 transition-all ${view === 'main_menu' ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
               >
-                <div className="w-6 h-6 bg-blue-500 rounded-sm" />
-                <span className="text-xs">主页</span>
+                <img src="/res/UI/btn_gx.png" alt="归墟" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                <span className="text-[10px] font-bold tracking-widest text-[#d4af37]">归墟</span>
               </button>
               <button 
                 onClick={() => setView('hero_dev')}
-                className={`flex flex-col items-center gap-1 ${view === 'hero_dev' ? 'text-purple-400' : 'text-gray-400'}`}
+                className={`flex flex-col items-center gap-1 transition-all ${view === 'hero_dev' ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
               >
-                <div className="w-6 h-6 bg-purple-500 rounded-sm" />
-                <span className="text-xs">英雄</span>
+                <img src="/res/UI/btn_ts.png" alt="天师" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                <span className="text-[10px] font-bold tracking-widest text-[#d4af37]">天师</span>
               </button>
             </div>
           </>

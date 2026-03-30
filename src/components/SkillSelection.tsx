@@ -21,7 +21,7 @@ export function SkillSelection({ choices, onSelect }: { choices: SkillNode[], on
       <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-6 animate-in fade-in zoom-in duration-200">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-2">能量充满！</h2>
-          <p className="text-gray-400 text-sm">选择一项技能强化你的主城</p>
+          <p className="text-gray-400 text-sm">选择一项技能强化你的英雄</p>
         </div>
 
         <div className="flex flex-col gap-3">
